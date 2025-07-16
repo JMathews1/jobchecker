@@ -18,7 +18,8 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Run job bot
+      - name: Run the job bot
         run: go run main.go
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
