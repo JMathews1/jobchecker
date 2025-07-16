@@ -133,13 +133,18 @@ func scrapeGeneric(name, url string) {
 }
 
 func sendSlackNotification(message string) {
-	jsonStr := fmt.Sprintf(`{"text":"%s"}`, message)
-	req, err := http.NewRequest("POST", slackWebhookURL, bytes.NewBuffer([]byte(jsonStr)))
+	slackToken := os.Getenv("SLACK_BOT_TOKEN")
+	channelID := os.Getenv("SLACK_CHANNEL_ID") 
+
+	jsonStr := fmt.Sprintf(`{"channel":"%s","text":"%s"}`, channelID, message)
+	req, err := http.NewRequest("POST", "https://slack.com/api/chat.postMessage", bytes.NewBuffer([]byte(jsonStr)))
 	if err != nil {
 		log.Printf("Slack error: %v\n", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+slackToken)
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -147,6 +152,7 @@ func sendSlackNotification(message string) {
 		return
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		log.Printf("Slack error: received status code %d\n", resp.StatusCode)
 	}
