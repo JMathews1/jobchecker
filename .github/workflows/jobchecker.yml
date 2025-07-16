@@ -1,0 +1,24 @@
+name: Daily Job Check
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Runs daily at 9 AM UTC
+  workflow_dispatch:    # Allows manual runs from GitHub UI
+
+jobs:
+  run-jobchecker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
+      - name: Run job bot
+        run: go run main.go
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
