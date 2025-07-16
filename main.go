@@ -71,43 +71,72 @@ type JobSite struct {
 func scrapeAll() {
 	var wg sync.WaitGroup
 
-	sites := []JobSite{
-		/* consulting / services */
-		{"RBC", "https://jobs.rbc.com/ca/en/search-results?keywords=devops&location=Halifax", scrapeRBC},
-		{"Scotiabank", "https://jobs.scotiabank.com/search/?q=devops&location=Halifax", scrapeGeneric},
-		{"TD Bank", "https://jobs.td.com/en-CA/search-results/?keywords=devops&location=Halifax", scrapeGeneric},
-		{"Deloitte", "https://careers.deloitte.ca/search/?q=devops&location=Halifax", scrapeGeneric},
-		{"CGI", "https://cgi.njoyn.com/CGI/xweb/XWeb.asp?NTKN=c&clid=21001&Page=JobList&lang=1", scrapeGeneric},
-		{"EY", "https://careers.ey.com/ey/search/?q=devops&locationsearch=halifax", scrapeGeneric},
-		{"Accenture", "https://www.accenture.com/ca-en/careers/jobsearch?jk=devops&lc=halifax", scrapeGeneric},
-		{"IBM", "https://www.ibm.com/ca-en/employment/", scrapeGeneric},
-		{"NTT Data", "https://careers-inc.nttdata.com/job-search-results/?keywords=devops&location=Halifax", scrapeGeneric},
-		{"Cognizant", "https://careers.cognizant.com/global/en/search-results?keywords=devops&location=Halifax", scrapeGeneric},
-		{"Microsoft", "https://careers.microsoft.com/us/en/search-results?keywords=devops&location=Halifax", scrapeGeneric},
-		{"Amazon", "https://www.amazon.jobs/en/search?base_query=devops&location=halifax", scrapeGeneric},
-		{"Google", "https://careers.google.com/jobs/results/?location=Halifax&q=devops", scrapeGeneric},
-		{"Oracle", "https://www.oracle.com/corporate/careers/jobs?keyword=devops&location=halifax", scrapeGeneric},
+    sites := []JobSite{
+        /* consulting / services - existing */
+        {"RBC", "https://jobs.rbc.com/ca/en/search-results?keywords=devops&location=Halifax", scrapeRBC},
+        {"Scotiabank", "https://jobs.scotiabank.com/search/?q=devops&location=Halifax", scrapeGeneric},
+        {"TD Bank", "https://jobs.td.com/en-CA/search-results/?keywords=devops&location=Halifax", scrapeGeneric},
+        {"Deloitte", "https://careers.deloitte.ca/search/?q=devops&location=Halifax", scrapeGeneric},
+        {"CGI", "https://cgi.njoyn.com/CGI/xweb/XWeb.asp?NTKN=c&clid=21001&Page=JobList&lang=1", scrapeGeneric},
+        {"EY", "https://careers.ey.com/ey/search/?q=devops&locationsearch=halifax", scrapeGeneric},
+        {"Accenture", "https://www.accenture.com/ca-en/careers/jobsearch?jk=devops&lc=halifax", scrapeGeneric},
+        {"IBM", "https://www.ibm.com/ca-en/employment/", scrapeGeneric},
+        {"NTT Data", "https://careers-inc.nttdata.com/job-search-results/?keywords=devops&location=Halifax", scrapeGeneric},
+        {"Cognizant", "https://careers.cognizant.com/global/en/search-results?keywords=devops&location=Halifax", scrapeGeneric},
+        {"Microsoft", "https://careers.microsoft.com/us/en/search-results?keywords=devops&location=Halifax", scrapeGeneric},
+        {"Amazon", "https://www.amazon.jobs/en/search?base_query=devops&location=halifax", scrapeGeneric},
+        {"Google", "https://careers.google.com/jobs/results/?location=Halifax&q=devops", scrapeGeneric},
+        {"Oracle", "https://www.oracle.com/corporate/careers/jobs?keyword=devops&location=halifax", scrapeGeneric},
 
-		/* product & scale-ups */
-		{"REDspace", "https://jobs.lever.co/redspace", scrapeGeneric},
-		{"Dash Hudson", "https://www.dashhudson.com/careers", scrapeGeneric},
-		{"Proposify", "https://www.proposify.com/careers", scrapeGeneric},
-		{"Milk Moovement", "https://milkmoovement.com/careers", scrapeGeneric},
-		{"MOBIA", "https://www.mobia.io/careers", scrapeGeneric},
-		{"CarteNav Solutions", "https://www.cartenav.com/careers/", scrapeGeneric},
-		{"GeoSpectrum", "https://geospectrum.ca/careers", scrapeGeneric},
-		{"ResMed", "https://resmed.wd3.myworkdayjobs.com/ResMedJobs", scrapeGeneric},
+        /* product & scale‑ups (existing) */
+        {"REDspace", "https://jobs.lever.co/redspace", scrapeGeneric},
+        {"Dash Hudson", "https://www.dashhudson.com/careers", scrapeGeneric},
+        {"Proposify", "https://www.proposify.com/careers", scrapeGeneric},
+        {"Milk Moovement", "https://milkmoovement.com/careers", scrapeGeneric},
+        {"MOBIA", "https://www.mobia.io/careers", scrapeGeneric},
+        {"CarteNav Solutions", "https://www.cartenav.com/careers/", scrapeGeneric},
+        {"GeoSpectrum", "https://geospectrum.ca/careers", scrapeGeneric},
+        {"ResMed", "https://resmed.wd3.myworkdayjobs.com/ResMedJobs", scrapeGeneric},
 
-		/* remote-first Canada tech */
-		{"CrowdStrike", "https://crowdstrike.wd5.myworkdayjobs.com/CrowdStrikeCareers?locations=6d6b7d53094f01d1c63237f24db0c35d", scrapeGeneric},
-		{"Affirm", "https://boards.greenhouse.io/affirm", scrapeGeneric},
-		{"Verafin", "https://verafin.com/careers", scrapeGeneric},
-		{"Introhive", "https://jobs.lever.co/introhive", scrapeGeneric},
+        /* remote‑first Canada tech (existing) */
+        {"CrowdStrike", "https://crowdstrike.wd5.myworkdayjobs.com/CrowdStrikeCareers?locations=6d6b7d53094f01d1c63237f24db0c35d", scrapeGeneric},
+        {"Affirm", "https://boards.greenhouse.io/affirm", scrapeGeneric},
+        {"Verafin", "https://verafin.com/careers", scrapeGeneric},
+        {"Introhive", "https://jobs.lever.co/introhive", scrapeGeneric},
 
-		/* government / defence */
-		{"Irving Shipbuilding", "https://www.shipsforcanada.ca/en/home/careers", scrapeGeneric},
-		{"Lockheed Martin", "https://www.lockheedmartinjobs.com/search-jobs/DevOps/Halifax/694/1", scrapeGeneric},
-	}
+        /* government / defence (existing) */
+        {"Irving Shipbuilding", "https://www.shipsforcanada.ca/en/home/careers", scrapeGeneric},
+        {"Lockheed Martin", "https://www.lockheedmartinjobs.com/search-jobs/DevOps/Halifax/694/1", scrapeGeneric},
+
+        /* ───── NEW GENERAL TECH EMPLOYERS ───── */
+        {"AXIS Capital", "https://axiscapital.wd1.myworkdayjobs.com/axiscareers", scrapeGeneric},
+        {"Arctic Wolf", "https://arcticwolf.wd1.myworkdayjobs.com/en-US/arcticwolfcareers", scrapeGeneric},
+        {"Automattic", "https://boards.greenhouse.io/automatticcareers", scrapeGeneric},
+        {"Bell Canada", "https://jobs.bell.ca/ca/en/search-results?location=Halifax", scrapeGeneric},
+        {"BMO", "https://jobs.bmo.com/ca/en/search/?q=DevOps&location=Canada", scrapeGeneric},
+        {"Canonical", "https://boards.greenhouse.io/canonical", scrapeGeneric},
+        {"CIBC", "https://jobs.cibc.com/search?keywords=DevOps&location=Canada", scrapeGeneric},
+        {"DXC Technology", "https://dxc.wd1.myworkdayjobs.com/DXC", scrapeGeneric},
+        {"Elastic", "https://boards.greenhouse.io/elastic", scrapeGeneric},
+        {"General Dynamics MS Canada", "https://careers.smartrecruiters.com/GDMSI", scrapeGeneric},
+        {"HashiCorp", "https://boards.greenhouse.io/hashicorp", scrapeGeneric},
+        {"Manulife", "https://manulife.wd3.myworkdayjobs.com/MFCJH_Jobs?q=Halifax", scrapeGeneric},
+        {"Mariner Partners", "https://ibnqjb.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/Mariner-Careers", scrapeGeneric},
+        {"Netsweeper", "https://netsweeper.bamboohr.com/jobs/", scrapeGeneric},
+        {"PwC Canada", "https://jobs.us.pwc.com/ca/en/", scrapeGeneric},
+        {"QRA Corp", "https://apply.workable.com/qra-corp/", scrapeGeneric},
+        {"Sonrai Security", "https://jobs.lever.co/sonraisecurity", scrapeGeneric},
+        {"Thales Canada", "https://careers.thalesgroup.com/en/careers", scrapeGeneric},
+        {"Ubisoft Halifax", "https://www.ubisoft.com/en-us/company/careers/search?locations=Halifax", scrapeGeneric},
+        {"Xplore", "https://xplore.njoyn.com/CL2/xweb/xweb.asp?CLID=63783&page=joblisting", scrapeGeneric},
+
+        /* ───── NEW OCEAN‑TECH & MARINE ───── */
+        {"Kraken Robotics", "https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=1b2377c5-e4e5-4fb5-8ff7-729419275a54", scrapeGeneric},
+        {"MetOcean Telematics", "https://jobs.dayforcehcm.com/en-US/metoceantelematics", scrapeGeneric},
+        {"Ocean Sonics", "https://oceansonics.applytojobs.ca", scrapeGeneric},
+        {"Ultra Maritime", "https://ultra.wd3.myworkdayjobs.com/ultra-careers", scrapeGeneric},
+        {"JASCO Applied Sciences", "https://www.jasco.com/careers", scrapeGeneric},
+    }
 
 	for _, s := range sites {
 		wg.Add(1)
