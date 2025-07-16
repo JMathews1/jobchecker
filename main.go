@@ -21,9 +21,16 @@ type JobSite struct {
 // Set your Slack webhook URL here
 var slackWebhookURL = os.Getenv("SLACK_WEBHOOK_URL")
 
+func init() {
+	if slackWebhookURL == "" {
+		log.Fatal("❌ SLACK_WEBHOOK_URL is not set")
+	}
+}
+
 func main() {
 	scrapeAll()
 }
+
 
 func scrapeAll() {
 	var wg sync.WaitGroup
