@@ -8,6 +8,7 @@ import (
 	"sync"
 	"net/http"
 	"bytes"
+	"io"
 
 	"github.com/gocolly/colly"
 )
@@ -18,8 +19,17 @@ type JobSite struct {
 	Scraper func(name, url string)
 }
 
-// Set your Slack webhook URL here
-const slackWebhookURL = "https://hooks.slack.com/services/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"
+var (
+	slackToken  = os.Getenv("SLACK_BOT_TOKEN")  // xoxb-…
+	channelID   = os.Getenv("SLACK_CHANNEL_ID") // C0963GUM1FW
+)
+
+func init() {
+	if slackToken == "" || channelID == "" {
+		log.Fatal("SLACK_BOT_TOKEN or SLACK_CHANNEL_ID not set")
+	}
+}
+
 
 func main() {
 	scrapeAll()
@@ -27,7 +37,6 @@ func main() {
 
 func scrapeAll() {
 	var wg sync.WaitGroup
-	fmt.Println(slackWebhookURL)
 	sites := []JobSite{
 		{"RBC", "https://jobs.rbc.com/ca/en/search-results?keywords=devops&location=Halifax", scrapeRBC},
 		{"EY", "https://careers.ey.com/ey/search/?q=devops&locationsearch=halifax", scrapeGeneric},
@@ -133,28 +142,26 @@ func scrapeGeneric(name, url string) {
 }
 
 func sendSlackNotification(message string) {
-	slackToken := os.Getenv("SLACK_BOT_TOKEN")
-	channelID := os.Getenv("SLACK_CHANNEL_ID") 
+	payload := fmt.Sprintf(`{"channel":"%s","text":"%s"}`, channelID, message)
 
-	jsonStr := fmt.Sprintf(`{"channel":"%s","text":"%s"}`, channelID, message)
-	req, err := http.NewRequest("POST", "https://slack.com/api/chat.postMessage", bytes.NewBuffer([]byte(jsonStr)))
-	if err != nil {
-		log.Printf("Slack error: %v\n", err)
-		return
-	}
+	req, _ := http.NewRequest(
+		"POST",
+		"https://slack.com/api/chat.postMessage",
+		bytes.NewBuffer([]byte(payload)),
+	)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+slackToken)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Slack error: %v\n", err)
+		log.Printf("Slack error: %v", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Printf("Slack error: received status code %d\n", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Slack HTTP %d – %s", resp.StatusCode, body)
 	}
 }
 
