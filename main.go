@@ -27,7 +27,7 @@ func main() {
 
 func scrapeAll() {
 	var wg sync.WaitGroup
-
+	fmt.Println(slackWebhookURL)
 	sites := []JobSite{
 		{"RBC", "https://jobs.rbc.com/ca/en/search-results?keywords=devops&location=Halifax", scrapeRBC},
 		{"EY", "https://careers.ey.com/ey/search/?q=devops&locationsearch=halifax", scrapeGeneric},
