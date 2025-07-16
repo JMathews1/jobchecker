@@ -19,23 +19,14 @@ type JobSite struct {
 }
 
 // Set your Slack webhook URL here
-var slackWebhookURL = os.Getenv("SLACK_WEBHOOK_URL")
-
-func init() {
-	if slackWebhookURL == "" {
-		log.Fatal("❌ SLACK_WEBHOOK_URL is not set")
-	}
-}
-
+const slackWebhookURL = "https://hooks.slack.com/services/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"
 
 func main() {
 	scrapeAll()
 }
 
-
 func scrapeAll() {
 	var wg sync.WaitGroup
-	fmt.Println("Webhook being used:", slackWebhookURL)
 
 	sites := []JobSite{
 		{"RBC", "https://jobs.rbc.com/ca/en/search-results?keywords=devops&location=Halifax", scrapeRBC},
