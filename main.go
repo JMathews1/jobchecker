@@ -19,7 +19,7 @@ type JobSite struct {
 }
 
 // Set your Slack webhook URL here
-const slackWebhookURL = "https://hooks.slack.com/services/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"
+const slackWebhookURL = "https://hooks.slack.com/services/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"
 
 func main() {
 	scrapeAll()
