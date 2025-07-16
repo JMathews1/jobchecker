@@ -25,14 +25,20 @@ var (
 )
 
 const (
-	historyFile   = "history.json"     // remembers alerts we’ve already sent
-	dedupWindow   = 72 * time.Hour     // don’t resend the same alert for 3 days
-	userAgent     = "Mozilla/5.0"      // shared UA string
+	historyFile = "history.json" // dedup store (kept)
+	dedupWindow = 72 * time.Hour // no repeat alerts within 3 days
+	userAgent   = "Mozilla/5.0"
 )
 
-/*─────────────────────────  START-UP  ─────────────────────────*/
+/*─────────────────────────  STATE  ─────────────────────────*/
 
-var history = map[string]int64{} // hash → unix timestamp
+var (
+	history    = map[string]int64{} // hash → unix timestamp
+	newAlerts  bool                 // set true when at least one alert sent
+	historyMtx sync.Mutex
+)
+
+/*─────────────────────────  INIT  ─────────────────────────*/
 
 func init() {
 	if slackToken == "" || channelID == "" {
@@ -45,9 +51,16 @@ func init() {
 
 /*─────────────────────────  MAIN  ─────────────────────────*/
 
-func main() { scrapeAll() }
+func main() {
+	scrapeAll()
+	if !newAlerts {
+		noMsg := "No new openings found"
+		fmt.Println(noMsg)
+		sendSlack(noMsg)
+	}
+}
 
-/*─────────────────────────  JOB LIST  ─────────────────────────*/
+/*─────────────────────────  SCRAPER LIST  ─────────────────────────*/
 
 type JobSite struct {
 	Name    string
@@ -59,7 +72,7 @@ func scrapeAll() {
 	var wg sync.WaitGroup
 
 	sites := []JobSite{
-		/* —— Consulting / services —— */
+		/* consulting / services */
 		{"RBC", "https://jobs.rbc.com/ca/en/search-results?keywords=devops&location=Halifax", scrapeRBC},
 		{"Scotiabank", "https://jobs.scotiabank.com/search/?q=devops&location=Halifax", scrapeGeneric},
 		{"TD Bank", "https://jobs.td.com/en-CA/search-results/?keywords=devops&location=Halifax", scrapeGeneric},
@@ -75,7 +88,7 @@ func scrapeAll() {
 		{"Google", "https://careers.google.com/jobs/results/?location=Halifax&q=devops", scrapeGeneric},
 		{"Oracle", "https://www.oracle.com/corporate/careers/jobs?keyword=devops&location=halifax", scrapeGeneric},
 
-		/* —— Product & scale-ups —— */
+		/* product & scale-ups */
 		{"REDspace", "https://jobs.lever.co/redspace", scrapeGeneric},
 		{"Dash Hudson", "https://www.dashhudson.com/careers", scrapeGeneric},
 		{"Proposify", "https://www.proposify.com/careers", scrapeGeneric},
@@ -85,34 +98,33 @@ func scrapeAll() {
 		{"GeoSpectrum", "https://geospectrum.ca/careers", scrapeGeneric},
 		{"ResMed", "https://resmed.wd3.myworkdayjobs.com/ResMedJobs", scrapeGeneric},
 
-		/* —— Remote-first Canada tech —— */
+		/* remote-first Canada tech */
 		{"CrowdStrike", "https://crowdstrike.wd5.myworkdayjobs.com/CrowdStrikeCareers?locations=6d6b7d53094f01d1c63237f24db0c35d", scrapeGeneric},
 		{"Affirm", "https://boards.greenhouse.io/affirm", scrapeGeneric},
 		{"Verafin", "https://verafin.com/careers", scrapeGeneric},
 		{"Introhive", "https://jobs.lever.co/introhive", scrapeGeneric},
 
-		/* —— Government & defence —— */
+		/* government / defence */
 		{"Irving Shipbuilding", "https://www.shipsforcanada.ca/en/home/careers", scrapeGeneric},
 		{"Lockheed Martin", "https://www.lockheedmartinjobs.com/search-jobs/DevOps/Halifax/694/1", scrapeGeneric},
 	}
 
-	for _, site := range sites {
+	for _, s := range sites {
 		wg.Add(1)
-		go func(s JobSite) {
+		go func(site JobSite) {
 			defer wg.Done()
-			s.Scraper(s.Name, s.URL)
-		}(site)
+			site.Scraper(site.Name, site.URL)
+		}(s)
 	}
 
 	wg.Wait()
 	fmt.Println("✅ All scrapers finished.")
 }
 
-/*─────────────────────────  SCRAPERS  ─────────────────────────*/
+/*─────────────────────────  SPECIFIC SCRAPER: RBC  ─────────────────────────*/
 
 func scrapeRBC(name, url string) {
 	fmt.Printf("🔍 Scraping %s...\n", name)
-
 	c := colly.NewCollector(colly.UserAgent(userAgent))
 
 	c.OnHTML("li.job-result", func(e *colly.HTMLElement) {
@@ -120,7 +132,6 @@ func scrapeRBC(name, url string) {
 		location := e.ChildText(".job-location")
 		link := e.ChildAttr("a", "href")
 		full := "https://jobs.rbc.com" + link
-
 		if containsKeywords(title) && locationContainsHalifax(location) {
 			notify(name, title, location, full)
 		}
@@ -131,9 +142,10 @@ func scrapeRBC(name, url string) {
 	}
 }
 
+/*─────────────────────────  GENERIC SCRAPER  ─────────────────────────*/
+
 func scrapeGeneric(name, url string) {
 	fmt.Printf("🔍 Scraping %s (generic)...\n", name)
-
 	c := colly.NewCollector(colly.UserAgent(userAgent))
 
 	c.OnHTML("body", func(e *colly.HTMLElement) {
@@ -147,33 +159,30 @@ func scrapeGeneric(name, url string) {
 	}
 }
 
-/*─────────────────────────  DEDUP + NOTIFY  ─────────────────────────*/
+/*─────────────────────────  NOTIFY & DEDUP  ─────────────────────────*/
 
 func notify(company, title, loc, link string) {
 	key := makeHash(company, title, link)
-	if !shouldNotify(key) {
-		return // already sent in last 72 h
+	if !shouldSend(key) {
+		return
 	}
+	newAlerts = true
 
 	msg := fmt.Sprintf("✅ %s: %s %s→ %s", company, title, loc, link)
 	fmt.Println(msg)
-
-	f, _ := os.OpenFile("matches.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	defer f.Close()
-	fmt.Fprintln(f, msg)
-
 	sendSlack(msg)
 }
 
-/*────── history helpers ──────*/
+/* history helpers */
 
-func shouldNotify(hash string) bool {
-	if ts, ok := history[hash]; ok {
-		if time.Since(time.Unix(ts, 0)) < dedupWindow {
-			return false
-		}
+func shouldSend(h string) bool {
+	historyMtx.Lock()
+	defer historyMtx.Unlock()
+
+	if ts, ok := history[h]; ok && time.Since(time.Unix(ts, 0)) < dedupWindow {
+		return false
 	}
-	history[hash] = time.Now().Unix()
+	history[h] = time.Now().Unix()
 	_ = os.WriteFile(historyFile, mustJSON(history), 0644)
 	return true
 }
@@ -193,8 +202,8 @@ func mustJSON(v any) []byte {
 
 /*─────────────────────────  SLACK  ─────────────────────────*/
 
-func sendSlack(message string) {
-	payload := fmt.Sprintf(`{"channel":"%s","text":"%s"}`, channelID, message)
+func sendSlack(text string) {
+	payload := fmt.Sprintf(`{"channel":"%s","text":"%s"}`, channelID, text)
 	req, _ := http.NewRequest("POST", "https://slack.com/api/chat.postMessage", bytes.NewBuffer([]byte(payload)))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+slackToken)
