@@ -253,7 +253,7 @@ func sendSlack(text string) {
 /*─────────────────────────  UTILS  ─────────────────────────*/
 
 func containsKeywords(text string) bool {
-	kws := []string{"devops", "cloud", "platform", "sre", "terraform", "azure", "kubernetes"}
+	kws := []string{"devops", "cloud", "platform", "sre", "terraform", "azure", "kubernetes", "golang"}
 	text = strings.ToLower(text)
 	for _, k := range kws {
 		if strings.Contains(text, k) {
