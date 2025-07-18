@@ -4,8 +4,8 @@ on:
   push:                # ⬅️ run on every push to main
     branches: ["main"]
 
-  schedule:            # still run every day at 09:00 UTC
-    - cron: "0 9 * * *"
+  schedule:            
+    - cron: "0 15 * * *"
 
   workflow_dispatch:   # keep the manual run button
 
